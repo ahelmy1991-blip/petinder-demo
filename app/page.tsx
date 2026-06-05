@@ -1,125 +1,58 @@
-'use client'
-
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { pets } from '@/lib/pets'
-import PetCard from '@/components/PetCard'
-import Navbar from '@/components/Navbar'
 
-export default function Home() {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [likedIds, setLikedIds] = useState<number[]>([])
-  const [animation, setAnimation] = useState<'like' | 'dislike' | null>(null)
-  const [showMatch, setShowMatch] = useState(false)
-
-  useEffect(() => {
-    const storedLikes = localStorage.getItem('petinder-likes')
-    if (storedLikes) setLikedIds(JSON.parse(storedLikes))
-    const storedIndex = localStorage.getItem('petinder-index')
-    if (storedIndex) setCurrentIndex(parseInt(storedIndex, 10))
-  }, [])
-
-  const handleSwipe = (direction: 'like' | 'dislike') => {
-    if (animation !== null) return
-
-    setAnimation(direction)
-
-    setTimeout(() => {
-      if (direction === 'like') {
-        const newLikes = [...likedIds, pets[currentIndex].id]
-        setLikedIds(newLikes)
-        localStorage.setItem('petinder-likes', JSON.stringify(newLikes))
-        setShowMatch(true)
-        setTimeout(() => setShowMatch(false), 1400)
-      }
-      const next = currentIndex + 1
-      setCurrentIndex(next)
-      localStorage.setItem('petinder-index', String(next))
-      setAnimation(null)
-    }, 350)
-  }
-
-  const reset = () => {
-    setCurrentIndex(0)
-    setLikedIds([])
-    setAnimation(null)
-    localStorage.removeItem('petinder-likes')
-    localStorage.removeItem('petinder-index')
-  }
-
-  const isDone = currentIndex >= pets.length
-
+export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
-      <Navbar likeCount={likedIds.length} />
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-purple-50">
+      <nav className="flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur border-b border-gray-100">
+        <span className="text-2xl font-black text-rose-500 tracking-tight">🐾 Petinder</span>
+        <div className="flex gap-3 items-center">
+          <Link href="/login" className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">
+            Sign In
+          </Link>
+          <Link href="/register" className="px-4 py-2 bg-rose-500 text-white text-sm font-semibold rounded-full hover:bg-rose-600 transition-colors shadow-sm">
+            Get Started
+          </Link>
+        </div>
+      </nav>
 
-      <main className="flex flex-col items-center px-4 py-8">
-        {isDone ? (
-          <div className="text-center py-24">
-            <div className="text-8xl mb-6">🐾</div>
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">
-              {"You've seen everyone!"}
-            </h2>
-            <p className="text-gray-500 mb-8">
-              You liked {likedIds.length} pet{likedIds.length !== 1 ? 's' : ''} — great taste!
-            </p>
-            <div className="flex gap-4 justify-center flex-wrap">
-              <Link
-                href="/matches"
-                className="bg-rose-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-rose-600 transition-colors shadow-md"
-              >
-                View Matches ({likedIds.length})
-              </Link>
-              <button
-                onClick={reset}
-                className="bg-white border-2 border-gray-200 text-gray-700 px-6 py-3 rounded-full font-semibold hover:border-gray-300 transition-colors"
-              >
-                Start Over
-              </button>
-            </div>
+      <section className="flex flex-col items-center text-center px-6 pt-20 pb-16">
+        <div className="text-8xl mb-6 animate-bounce">🐾</div>
+        <h1 className="text-5xl font-black text-gray-900 mb-4 leading-tight max-w-lg">
+          Find Your Perfect{' '}
+          <span className="text-rose-500">Pet Companion</span>
+        </h1>
+        <p className="text-xl text-gray-500 mb-10 max-w-md">
+          Swipe through adorable pets looking for their forever home. Your new best friend is just a tap away.
+        </p>
+        <div className="flex gap-4 flex-wrap justify-center">
+          <Link
+            href="/register"
+            className="px-8 py-4 bg-rose-500 text-white font-bold rounded-full text-lg hover:bg-rose-600 transition-colors shadow-lg hover:shadow-xl"
+          >
+            Start Swiping 🐶
+          </Link>
+          <Link
+            href="/login"
+            className="px-8 py-4 bg-white text-gray-700 font-bold rounded-full text-lg border-2 border-gray-200 hover:border-gray-300 transition-colors"
+          >
+            Sign In
+          </Link>
+        </div>
+      </section>
+
+      <section className="max-w-3xl mx-auto px-6 pb-24 grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {[
+          { emoji: '🔍', title: 'Browse', desc: 'Discover pets near you — dogs, cats, rabbits, and more.' },
+          { emoji: '❤️', title: 'Match', desc: 'Like the ones you love and they go straight to your matches.' },
+          { emoji: '🏠', title: 'Adopt', desc: 'Contact shelters and give a pet their forever home.' },
+        ].map((f) => (
+          <div key={f.title} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center hover:shadow-md transition-shadow">
+            <div className="text-4xl mb-3">{f.emoji}</div>
+            <h3 className="font-bold text-gray-900 mb-1">{f.title}</h3>
+            <p className="text-gray-500 text-sm">{f.desc}</p>
           </div>
-        ) : (
-          <div className="w-full max-w-sm relative">
-            {showMatch && (
-              <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-                <div className="bg-rose-500 text-white text-3xl font-black px-10 py-6 rounded-3xl shadow-2xl scale-100 animate-bounce">
-                  {"It's a Match! 🎉"}
-                </div>
-              </div>
-            )}
-
-            {/* Background stack card */}
-            {pets[currentIndex + 1] && (
-              <div className="absolute inset-0 top-2 mx-2 bg-white rounded-3xl shadow opacity-40 -z-10" />
-            )}
-
-            <PetCard pet={pets[currentIndex]} animation={animation} />
-
-            <div className="flex justify-center gap-10 mt-8">
-              <button
-                onClick={() => handleSwipe('dislike')}
-                disabled={animation !== null}
-                aria-label="Pass"
-                className="w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:scale-110 hover:shadow-xl transition-all border border-gray-100 disabled:opacity-50"
-              >
-                ✕
-              </button>
-              <button
-                onClick={() => handleSwipe('like')}
-                disabled={animation !== null}
-                aria-label="Like"
-                className="w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:scale-110 hover:shadow-xl transition-all border border-rose-100 disabled:opacity-50"
-              >
-                ❤️
-              </button>
-            </div>
-
-            <p className="text-center text-sm text-gray-400 mt-6">
-              {currentIndex + 1} / {pets.length}
-            </p>
-          </div>
-        )}
-      </main>
+        ))}
+      </section>
     </div>
   )
 }
