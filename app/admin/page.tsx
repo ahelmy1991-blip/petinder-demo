@@ -14,17 +14,34 @@ interface AdminUser {
   petCount: number
   providerProfile: { type: string; verified: boolean; rating: number } | null
 }
+interface ScrapeStatus {
+  lastRun: string | null
+  counts: { pets: number; adoptable: number; providers: number; products: number; services: number }
+}
+interface ScrapeResult {
+  pets: number; providers: number; products: number; services: number
+  source: 'api' | 'curated'; errors: string[]
+}
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [users, setUsers] = useState<AdminUser[]>([])
   const [denied, setDenied] = useState(false)
+  const [scrapeStatus, setScrapeStatus] = useState<ScrapeStatus | null>(null)
+  const [scrapeResult, setScrapeResult] = useState<ScrapeResult | null>(null)
+  const [scraping, setScraping] = useState(false)
+  const [scrapeCategory, setScrapeCategory] = useState<'all' | 'pets' | 'shops' | 'services'>('all')
 
   const load = useCallback(async () => {
-    const [statsRes, usersRes] = await Promise.all([fetch('/api/admin/stats'), fetch('/api/admin/users')])
+    const [statsRes, usersRes, scrapeRes] = await Promise.all([
+      fetch('/api/admin/stats'),
+      fetch('/api/admin/users'),
+      fetch('/api/scrape'),
+    ])
     if (statsRes.status === 403 || statsRes.status === 401) { setDenied(true); return }
     if (statsRes.ok) setStats((await statsRes.json()).stats)
     if (usersRes.ok) setUsers((await usersRes.json()).users)
+    if (scrapeRes.ok) setScrapeStatus(await scrapeRes.json())
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -35,6 +52,23 @@ export default function AdminDashboard() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, action }),
     })
+    await load()
+  }
+
+  const runScrape = async () => {
+    setScraping(true)
+    setScrapeResult(null)
+    const res = await fetch('/api/scrape', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category: scrapeCategory }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setScrapeResult(data)
+      setScrapeStatus(data.status)
+    }
+    setScraping(false)
     await load()
   }
 
@@ -79,6 +113,72 @@ export default function AdminDashboard() {
             </div>
           </>
         )}
+
+        {/* Data Scraper Panel */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="font-bold text-gray-900 text-sm">Live Data Scraper</h2>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                Fetches real breeds from TheDogAPI &amp; TheCatAPI + curated Egyptian shops &amp; services
+              </p>
+            </div>
+            <span className="text-2xl">🔍</span>
+          </div>
+
+          {scrapeStatus && (
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-center mb-3 bg-gray-50 rounded-xl p-3">
+              {[
+                ['Pets', scrapeStatus.counts.pets],
+                ['Adoptable', scrapeStatus.counts.adoptable],
+                ['Providers', scrapeStatus.counts.providers],
+                ['Products', scrapeStatus.counts.products],
+                ['Services', scrapeStatus.counts.services],
+              ].map(([l, v]) => (
+                <div key={l as string}>
+                  <p className="font-black text-gray-900 text-sm">{v}</p>
+                  <p className="text-[10px] text-gray-400">{l}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {scrapeStatus?.lastRun && (
+            <p className="text-[11px] text-gray-400 mb-2">Last run: {new Date(scrapeStatus.lastRun).toLocaleString()}</p>
+          )}
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={scrapeCategory}
+              onChange={e => setScrapeCategory(e.target.value as typeof scrapeCategory)}
+              className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700"
+            >
+              <option value="all">All categories</option>
+              <option value="pets">Pets only</option>
+              <option value="shops">Shops & products only</option>
+              <option value="services">Services & providers only</option>
+            </select>
+            <button
+              onClick={runScrape}
+              disabled={scraping}
+              className="text-xs font-bold bg-rose-500 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+            >
+              {scraping ? 'Scraping…' : 'Run Scraper'}
+            </button>
+          </div>
+
+          {scrapeResult && (
+            <div className="mt-3 bg-gray-50 rounded-xl p-3">
+              <p className="text-xs font-semibold text-gray-700 mb-1">
+                Added — Pets: {scrapeResult.pets} · Providers: {scrapeResult.providers} · Products: {scrapeResult.products} · Services: {scrapeResult.services}
+              </p>
+              <p className="text-[11px] text-gray-400">Source: {scrapeResult.source === 'api' ? '🌐 Live API' : '📋 Curated dataset'}</p>
+              {scrapeResult.errors.length > 0 && (
+                <p className="text-[11px] text-amber-600 mt-1">Warnings: {scrapeResult.errors.join(' | ')}</p>
+              )}
+            </div>
+          )}
+        </div>
 
         <h2 className="font-bold text-gray-900 text-sm mb-2">Users & providers</h2>
         {users.map(u => (
