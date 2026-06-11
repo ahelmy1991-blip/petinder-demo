@@ -2,42 +2,29 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useLang } from '@/contexts/LangContext'
-import { t } from '@/lib/i18n'
 
-interface Props {
-  cartCount?: number
-}
+const TABS = [
+  { href: '/feed', label: 'Feed', icon: '🏠' },
+  { href: '/match', label: 'Match', icon: '💞' },
+  { href: '/services', label: 'Services', icon: '🧰' },
+  { href: '/shop', label: 'Shop', icon: '🛍️' },
+  { href: '/chat', label: 'Chat', icon: '💬' },
+]
 
-export default function BottomNav({ cartCount = 0 }: Props) {
+export default function BottomNav() {
   const pathname = usePathname()
-  const { lang } = useLang()
-  const tr = t[lang]
-
-  const items = [
-    { href: '/home', label: tr.home, icon: '🏠' },
-    { href: '/saved', label: tr.saved, icon: '❤️' },
-    { href: '/cart', label: tr.cart, icon: '🛒', badge: cartCount },
-    { href: '/chat', label: tr.chat, icon: '💬' },
-  ]
-
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex z-40 safe-area-pb">
-      {items.map(item => {
-        const active = pathname.startsWith(item.href)
+    <nav className="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-100 flex justify-around py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      {TABS.map(t => {
+        const active = pathname === t.href || pathname.startsWith(t.href + '/')
         return (
           <Link
-            key={item.href}
-            href={item.href}
-            className={`flex-1 flex flex-col items-center py-2 text-xs transition-colors relative ${active ? 'text-rose-500' : 'text-gray-400'}`}
+            key={t.href}
+            href={t.href}
+            className={`flex flex-col items-center text-[11px] font-medium px-2 ${active ? 'text-rose-500' : 'text-gray-400'}`}
           >
-            <span className="text-xl mb-0.5">{item.icon}</span>
-            {item.badge !== undefined && item.badge > 0 && (
-              <span className="absolute top-1 right-1/4 bg-rose-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                {item.badge > 9 ? '9+' : item.badge}
-              </span>
-            )}
-            <span>{item.label}</span>
+            <span className="text-xl leading-none mb-0.5">{t.icon}</span>
+            {t.label}
           </Link>
         )
       })}

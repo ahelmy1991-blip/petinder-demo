@@ -15,3 +15,7 @@ node_modules/
 *.pem
 npm-debug.log*
 tsconfig.tsbuildinfo
+
+# QA artifacts
+qa/screenshots/
+qa/defect-report.md

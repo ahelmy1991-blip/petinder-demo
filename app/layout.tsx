@@ -1,21 +1,18 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { LangProvider } from '@/contexts/LangContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Cairo Souq — سوق القاهرة',
-  description: 'Discover the best vendors, food, and shops in Cairo',
+  title: 'Petinder — Everything your pet needs',
+  description: 'Social network, playdate matching, services booking and marketplace for pets.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <LangProvider>{children}</LangProvider>
-      </body>
+      <body className={inter.className}>{children}</body>
     </html>
   )
 }

@@ -1,37 +1,42 @@
 'use client'
 
-import { useLang } from '@/contexts/LangContext'
-import { t } from '@/lib/i18n'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
-interface Props {
-  userName?: string
-  onLogout?: () => void
-}
+export default function TopBar({ title }: { title?: string }) {
+  const router = useRouter()
+  const [unread, setUnread] = useState(0)
 
-export default function TopBar({ userName, onLogout }: Props) {
-  const { lang, toggle } = useLang()
-  const tr = t[lang]
+  useEffect(() => {
+    fetch('/api/notifications')
+      .then(r => (r.ok ? r.json() : { unread: 0 }))
+      .then(d => setUnread(d.unread ?? 0))
+      .catch(() => {})
+  }, [])
+
+  const signOut = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/login')
+  }
 
   return (
-    <header className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
-      <div>
-        <span className="text-xl font-black text-rose-600">{tr.appName}</span>
-        {userName && (
-          <p className="text-xs text-gray-400">{tr.hi}, {userName.split(' ')[0]} 👋</p>
-        )}
-      </div>
+    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+      <Link href="/feed" className="text-xl font-black text-rose-500 tracking-tight">
+        🐾 {title ?? 'Petinder'}
+      </Link>
       <div className="flex items-center gap-3">
-        <button
-          onClick={toggle}
-          className="text-xs font-bold px-2 py-1 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50"
-        >
-          {lang === 'en' ? 'عربي' : 'EN'}
+        <Link href="/profile" className="relative text-xl" aria-label="Profile & notifications">
+          🔔
+          {unread > 0 && (
+            <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+              {unread}
+            </span>
+          )}
+        </Link>
+        <button onClick={signOut} className="text-xs text-gray-400 hover:text-rose-500 font-medium">
+          Sign out
         </button>
-        {onLogout && (
-          <button onClick={onLogout} className="text-xs text-gray-400 hover:text-gray-700">
-            {tr.signOut}
-          </button>
-        )}
       </div>
     </header>
   )

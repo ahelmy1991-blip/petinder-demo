@@ -6,11 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "qa:journeys": "node qa/journey-agent.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "cheerio": "^1.2.0",
     "jsonwebtoken": "^9.0.3",
     "next": "^15.5.19",
     "react": "^18",

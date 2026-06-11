@@ -13,10 +13,13 @@ export async function POST(req: NextRequest) {
   if (!user || !verifyPassword(password, user.passwordHash)) {
     return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
   }
+  if (user.banned) {
+    return NextResponse.json({ error: 'This account has been suspended' }, { status: 403 })
+  }
 
-  const token = signToken({ userId: user.id, email: user.email, name: user.name })
+  const token = signToken({ userId: user.id, email: user.email, name: user.name, role: user.role })
 
-  const res = NextResponse.json({ user: { id: user.id, name: user.name, email: user.email } })
+  const res = NextResponse.json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } })
   res.cookies.set('auth-token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
