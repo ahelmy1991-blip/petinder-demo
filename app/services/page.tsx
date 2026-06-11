@@ -12,6 +12,7 @@ interface ServiceItem {
   description: string
   price: number
   durationMin: number
+  homeVisit?: boolean
   provider: { id: string; name: string; avatar: string } | null
   profile: { city: string; rating: number; reviewCount: number; verified: boolean } | null
 }
@@ -32,6 +33,7 @@ const TYPES = [
   { value: 'sitter', label: '🏠 Sitting' },
   { value: 'vet', label: '🩺 Vets' },
   { value: 'groomer', label: '✂️ Grooming' },
+  { value: 'hotel', label: '🏨 Pet Hotels' },
 ]
 
 const STATUS_COLORS: Record<string, string> = {
@@ -47,6 +49,7 @@ export default function ServicesPage() {
   const [bookings, setBookings] = useState<BookingItem[]>([])
   const [myPets, setMyPets] = useState<MyPet[]>([])
   const [type, setType] = useState('')
+  const [homeVisitOnly, setHomeVisitOnly] = useState(false)
   const [bookingFor, setBookingFor] = useState<ServiceItem | null>(null)
   const [bookForm, setBookForm] = useState({ petId: '', date: '' })
   const [error, setError] = useState('')
@@ -55,8 +58,12 @@ export default function ServicesPage() {
   const [reviewForm, setReviewForm] = useState({ rating: 5, text: '' })
 
   const load = useCallback(async () => {
+    const params = new URLSearchParams()
+    if (type) params.set('type', type)
+    if (homeVisitOnly) params.set('homeVisit', '1')
+    const qs = params.toString()
     const [svcRes, bkgRes, petsRes] = await Promise.all([
-      fetch(`/api/services${type ? `?type=${type}` : ''}`),
+      fetch(`/api/services${qs ? `?${qs}` : ''}`),
       fetch('/api/bookings'),
       fetch('/api/pets?mine=1'),
     ])
@@ -67,7 +74,7 @@ export default function ServicesPage() {
       setMyPets(pets)
       setBookForm(f => ({ ...f, petId: f.petId || pets[0]?.id || '' }))
     }
-  }, [type])
+  }, [type, homeVisitOnly])
 
   useEffect(() => { load() }, [load])
 
@@ -140,7 +147,7 @@ export default function ServicesPage() {
         )}
 
         {/* Filter */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-1">
           {TYPES.map(t => (
             <button
               key={t.value}
@@ -151,6 +158,12 @@ export default function ServicesPage() {
             </button>
           ))}
         </div>
+        <button
+          onClick={() => setHomeVisitOnly(v => !v)}
+          className={`text-xs font-semibold px-3 py-1.5 rounded-full border mb-3 ${homeVisitOnly ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-gray-500 border-gray-200'}`}
+        >
+          🏡 At-home visits only
+        </button>
 
         {/* Services */}
         {services.map(s => (
@@ -158,7 +171,11 @@ export default function ServicesPage() {
             <div className="flex items-start gap-3">
               <span className="text-3xl">{s.provider?.avatar ?? '🧑‍⚕️'}</span>
               <div className="flex-1">
-                <h3 className="font-bold text-gray-900 text-sm">{s.title}</h3>
+                <h3 className="font-bold text-gray-900 text-sm">
+                  {s.title}
+                  {s.homeVisit && <span className="ms-1.5 text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full align-middle">🏡 home visit</span>}
+                  {s.type === 'hotel' && <span className="ms-1.5 text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full align-middle">🏨 boarding</span>}
+                </h3>
                 <p className="text-xs text-gray-400 mb-1">
                   {s.provider?.name} {s.profile?.verified && '✅'} · {s.profile?.city} · ⭐ {s.profile?.rating || 'New'} ({s.profile?.reviewCount ?? 0})
                 </p>

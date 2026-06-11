@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { hashPassword, signToken } from '@/lib/auth'
 import { findUserByEmail, createUser, db, ProviderType } from '@/lib/db'
 
-const PROVIDER_TYPES: ProviderType[] = ['walker', 'sitter', 'vet', 'groomer', 'shop']
+const PROVIDER_TYPES: ProviderType[] = ['walker', 'sitter', 'vet', 'groomer', 'shop', 'hotel']
 
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as Record<string, string>

@@ -4,7 +4,7 @@
  * Falls back to a large curated dataset when network is unavailable.
  * Shop / service data is curated from real Egyptian pet-industry profiles.
  */
-import { db, nextId, Pet, Product, ProviderProfile, Service, User } from './db'
+import { db, nextId, Pet, PetEvent, Product, ProviderProfile, ProviderType, Service, User } from './db'
 import { hashPassword } from './auth'
 
 // ---------- External API types ----------
@@ -145,51 +145,114 @@ const PRODUCTS_BY_SHOP: Product[][] = [
   ],
 ]
 
-const SERVICE_PROFILES = [
+interface ServiceProfileSeed {
+  name: string
+  type: ProviderType
+  bio: string
+  city: string
+  rating: number
+  reviewCount: number
+  services: { title: string; description: string; price: number; durationMin: number; homeVisit?: boolean }[]
+}
+
+const SERVICE_PROFILES: ServiceProfileSeed[] = [
   {
-    name: 'Happy Paws Dog Walking', type: 'walker' as const, bio: 'Certified dog trainer & walker. GPS-tracked walks, photo updates every 30 min. Fully insured.', city: 'New Cairo', rating: 4.9, reviewCount: 287,
+    name: 'Happy Paws Dog Walking', type: 'walker', bio: 'Certified dog trainer & walker. GPS-tracked walks, photo updates every 30 min. Fully insured.', city: 'New Cairo', rating: 4.9, reviewCount: 287,
     services: [
       { title: '45-min Morning Walk', description: 'Early bird walk before 9am, GPS route shared with owner.', price: 200, durationMin: 45 },
       { title: '90-min Adventure Hike', description: 'Off-leash trail exploration, social time with other dogs.', price: 380, durationMin: 90 },
     ]
   },
   {
-    name: 'Cozy Pet Sitters', type: 'sitter' as const, bio: 'Home-based overnight & day care. Spacious garden, AC rooms, cam available. Max 3 pets at a time.', city: 'Maadi', rating: 4.8, reviewCount: 165,
+    name: 'Cozy Pet Sitters', type: 'sitter', bio: 'Home-based overnight & day care. Spacious garden, AC rooms, cam available. Max 3 pets at a time.', city: 'Maadi', rating: 4.8, reviewCount: 165,
     services: [
       { title: 'Day Care (8hr)', description: 'Full-day supervised care with meals, walks & playtime.', price: 350, durationMin: 480 },
       { title: 'Weekend Boarding', description: 'Fri–Sun stay with daily activity reports.', price: 1200, durationMin: 2880 },
     ]
   },
   {
-    name: 'Dr. Maha Animal Clinic', type: 'vet' as const, bio: 'MVSC licensed vet, 14 yrs experience. X-ray, ultrasound, blood panels on-site. Emergency line open 24/7.', city: 'Heliopolis', rating: 4.9, reviewCount: 529,
+    name: 'Dr. Maha Animal Clinic', type: 'vet', bio: 'MVSC licensed vet, 14 yrs experience. X-ray, ultrasound, blood panels on-site. Emergency line open 24/7.', city: 'Heliopolis', rating: 4.9, reviewCount: 529,
     services: [
       { title: 'Annual Wellness Exam', description: 'Head-to-tail checkup, bloodwork, nutrition review.', price: 550, durationMin: 45 },
       { title: 'Spay / Neuter Consult', description: 'Pre-op evaluation and surgery planning.', price: 300, durationMin: 30 },
       { title: 'Dental Cleaning', description: 'Ultrasonic scaling under light sedation.', price: 900, durationMin: 60 },
+      { title: 'Home Visit — Full Exam', description: 'The doctor comes to you anywhere in Greater Cairo. Checkup + vaccines at home.', price: 750, durationMin: 60, homeVisit: true },
     ]
   },
   {
-    name: 'Glamour Paws Grooming', type: 'groomer' as const, bio: 'Luxury mobile grooming van — we come to you! Show-quality finishing, breed-specific cuts, hypoallergenic products.', city: 'Zamalek', rating: 4.7, reviewCount: 98,
+    name: 'Glamour Paws Grooming', type: 'groomer', bio: 'Luxury mobile grooming van — we come to you! Show-quality finishing, breed-specific cuts, hypoallergenic products.', city: 'Zamalek', rating: 4.7, reviewCount: 98,
     services: [
-      { title: 'Signature Bath & Brush', description: 'Premium shampoo, conditioner, blow-dry, brush-out.', price: 350, durationMin: 60 },
-      { title: 'Full Breed Trim', description: 'Haircut per breed standard + nail + ear + teeth.', price: 650, durationMin: 120 },
-      { title: 'De-shedding Treatment', description: 'Deep conditioning + furminator for heavy shedders.', price: 480, durationMin: 90 },
+      { title: 'Signature Bath & Brush', description: 'Premium shampoo, conditioner, blow-dry, brush-out.', price: 350, durationMin: 60, homeVisit: true },
+      { title: 'Full Breed Trim', description: 'Haircut per breed standard + nail + ear + teeth.', price: 650, durationMin: 120, homeVisit: true },
+      { title: 'De-shedding Treatment', description: 'Deep conditioning + furminator for heavy shedders.', price: 480, durationMin: 90, homeVisit: true },
     ]
   },
   {
-    name: 'Cairo Pet Hotel', type: 'sitter' as const, bio: 'Boutique pet hotel — private suites, pool access, enrichment play sessions. Airport pickup available.', city: 'Cairo', rating: 4.6, reviewCount: 213,
-    services: [
-      { title: 'Standard Suite (per night)', description: 'Private room with bed, water fountain, toys.', price: 800, durationMin: 1440 },
-      { title: 'Deluxe Suite + Pool', description: 'Larger suite with outdoor pool access morning & evening.', price: 1400, durationMin: 1440 },
-    ]
-  },
-  {
-    name: 'Wings & Whiskers Vet', type: 'vet' as const, bio: 'Avian & exotic specialist — birds, rabbits, guinea pigs, reptiles. Licensed by MVSC.', city: 'Dokki', rating: 4.8, reviewCount: 141,
+    name: 'Wings & Whiskers Vet', type: 'vet', bio: 'Avian & exotic specialist — birds, rabbits, guinea pigs, reptiles. Licensed by MVSC.', city: 'Dokki', rating: 4.8, reviewCount: 141,
     services: [
       { title: 'Exotic Pet Checkup', description: 'Species-specific exam, weight, nutrition plan.', price: 480, durationMin: 40 },
       { title: 'Wing / Nail Trim', description: 'Safe, stress-free trim for birds & small animals.', price: 150, durationMin: 15 },
     ]
   },
+  // ---- Home-visit vet network ----
+  {
+    name: 'Dr. Ahmed Home Vet', type: 'vet', bio: 'Mobile veterinary unit covering Maadi, Zamalek & Downtown. Vaccinations, checkups and minor procedures at your door, 7 days a week.', city: 'Maadi', rating: 4.8, reviewCount: 312,
+    services: [
+      { title: 'Home Checkup Visit', description: 'Full physical exam at your home — no stressful clinic trip.', price: 600, durationMin: 45, homeVisit: true },
+      { title: 'Home Vaccination Round', description: 'Core vaccines administered at home with digital record.', price: 500, durationMin: 30, homeVisit: true },
+      { title: 'Senior Pet Home Care', description: 'Mobility check, bloodwork draw, pain management plan for older pets.', price: 850, durationMin: 60, homeVisit: true },
+    ]
+  },
+  {
+    name: 'VetOnWheels Cairo', type: 'vet', bio: 'Fully equipped van clinic — ultrasound, lab kit and pharmacy on board. Covers New Cairo, Nasr City & Heliopolis. Same-day slots.', city: 'New Cairo', rating: 4.7, reviewCount: 188,
+    services: [
+      { title: 'Urgent Home Visit (same day)', description: 'On-site assessment within hours for non-critical emergencies.', price: 950, durationMin: 60, homeVisit: true },
+      { title: 'At-Home Lab Panel', description: 'Blood + urine collection at home, results within 24h.', price: 700, durationMin: 30, homeVisit: true },
+    ]
+  },
+  // ---- Pet hotels for travel boarding ----
+  {
+    name: 'Cairo Pet Hotel', type: 'hotel', bio: 'Boutique pet hotel — private suites, pool access, enrichment play sessions. Airport pickup available for travelers.', city: 'Cairo', rating: 4.6, reviewCount: 213,
+    services: [
+      { title: 'Standard Suite (per night)', description: 'Private room with bed, water fountain, toys. Daily photo updates while you travel.', price: 800, durationMin: 1440 },
+      { title: 'Deluxe Suite + Pool', description: 'Larger suite with outdoor pool access morning & evening.', price: 1400, durationMin: 1440 },
+      { title: 'Long-Stay Travel Package (7 nights)', description: 'Week-long boarding with grooming session, daily video calls, airport pickup & drop-off.', price: 5000, durationMin: 10080 },
+    ]
+  },
+  {
+    name: 'The Bark Inn — New Cairo', type: 'hotel', bio: '24/7 supervised luxury boarding. Climate-controlled rooms, webcam access so you can watch your pet from anywhere in the world.', city: 'New Cairo', rating: 4.8, reviewCount: 156,
+    services: [
+      { title: 'Comfort Room (per night)', description: 'Cozy room, 3 walks daily, live webcam access from your phone.', price: 650, durationMin: 1440 },
+      { title: 'Vacation Bundle (5 nights)', description: 'Five nights + exit bath & nail trim. Perfect for short trips.', price: 3000, durationMin: 7200 },
+    ]
+  },
+  {
+    name: 'Whiskers Cat Hotel', type: 'hotel', bio: 'Cats-only boutique boarding in Zamalek. Quiet floors, window perches, individual condos — zero dog stress.', city: 'Zamalek', rating: 4.9, reviewCount: 97,
+    services: [
+      { title: 'Cat Condo (per night)', description: 'Multi-level condo with hideaway, daily brushing & play session.', price: 450, durationMin: 1440 },
+      { title: 'Extended Stay (10 nights)', description: 'For long trips — includes vet check mid-stay and daily photo report.', price: 4000, durationMin: 14400 },
+    ]
+  },
+  {
+    name: 'Paws Resort 6th of October', type: 'hotel', bio: '2-acre outdoor resort with splash pools, agility park and grooming spa. Free shuttle from Sheikh Zayed & Dokki.', city: '6th of October', rating: 4.7, reviewCount: 240,
+    services: [
+      { title: 'Resort Stay (per night)', description: 'Open-air play all day, indoor AC suites at night.', price: 900, durationMin: 1440 },
+      { title: 'Holiday Package (14 nights)', description: 'Two-week stay for long travel — weekly grooming, daily videos, vet on call.', price: 10500, durationMin: 20160 },
+    ]
+  },
+]
+
+// ---------- Events curated data ----------
+
+const EVENT_SEEDS: Array<Omit<PetEvent, 'id' | 'organizerId' | 'attendees' | 'date'> & { inDays: number }> = [
+  { title: 'Giza Mega Adoption Day', description: '50+ rescued dogs & cats from 6 Cairo shelters. Free microchipping for every adoption, vet Q&A corner.', category: 'adoption', city: 'Giza', venue: 'Giza Pet Rescue Center', inDays: 5, petFriendlySpecies: ['dog', 'cat'], photo: '🏡' },
+  { title: 'Cairo Kennel Club Dog Show 2026', description: 'Annual conformation show — German Shepherds, Goldens, Malinois and 20 more breeds. Public welcome, ringside seats free.', category: 'show', city: 'Cairo', venue: 'Cairo International Exhibition Center', inDays: 12, petFriendlySpecies: ['dog'], photo: '🏆' },
+  { title: 'Puppy Training Bootcamp', description: '4-hour intensive: leash manners, recall, crate training. Certified trainers, max 12 puppies per session.', category: 'training', city: 'New Cairo', venue: 'Family Park, New Cairo', inDays: 8, petFriendlySpecies: ['dog'], photo: '🎓' },
+  { title: 'Maadi Cat Café Social', description: 'Monthly meetup for cat lovers — adoption corner with rescued kittens, behavior talks over coffee.', category: 'meetup', city: 'Maadi', venue: 'Whiskers Café, Road 9', inDays: 15, petFriendlySpecies: ['cat'], photo: '🐱' },
+  { title: 'Run For Rescues 5K', description: 'Charity dog-friendly run along the Nile Corniche. Registration fees fund street-animal vaccination drives.', category: 'charity', city: 'Cairo', venue: 'Nile Corniche, Garden City', inDays: 20, petFriendlySpecies: ['dog'], photo: '🏃' },
+  { title: 'Heliopolis Bird Fanciers Expo', description: 'Cockatiels, African Greys, canaries — breeders, avian vet talks, free wing-trim demos.', category: 'show', city: 'Heliopolis', venue: 'Heliopolis Club', inDays: 25, petFriendlySpecies: ['bird'], photo: '🦜' },
+  { title: 'Zamalek Dog Park Friday Social', description: 'Weekly off-leash morning social. Separate small-dog zone, agility equipment, pro photographer on site.', category: 'meetup', city: 'Zamalek', venue: 'Fish Garden Park', inDays: 2, petFriendlySpecies: ['dog'], photo: '🐕' },
+  { title: 'Vaccinate Cairo — Free Clinic Day', description: 'Free rabies & core vaccines for the first 200 pets, sponsored by Cairo vet syndicate.', category: 'charity', city: 'Nasr City', venue: 'El-Salam Veterinary Field Unit', inDays: 10, petFriendlySpecies: ['dog', 'cat'], photo: '💉' },
 ]
 
 const BIRD_BREEDS = ['Cockatiel', 'Budgerigar', 'African Grey', 'Lovebird', 'Canary', 'Conure']
@@ -202,6 +265,7 @@ export interface ScrapeResult {
   providers: number
   products: number
   services: number
+  events: number
   source: 'api' | 'curated'
   errors: string[]
 }
@@ -209,13 +273,14 @@ export interface ScrapeResult {
 const SCRAPE_KEY = '__petinderScrapeRun'
 const g = globalThis as Record<string, unknown>
 
-export async function runScraper(category?: 'pets' | 'shops' | 'services' | 'all'): Promise<ScrapeResult> {
-  const result: ScrapeResult = { pets: 0, providers: 0, products: 0, services: 0, source: 'curated', errors: [] }
+export async function runScraper(category?: 'pets' | 'shops' | 'services' | 'events' | 'all'): Promise<ScrapeResult> {
+  const result: ScrapeResult = { pets: 0, providers: 0, products: 0, services: 0, events: 0, source: 'curated', errors: [] }
   const cat = category ?? 'all'
 
   if (cat === 'all' || cat === 'pets') await scrapePets(result)
   if (cat === 'all' || cat === 'shops') scrapeShops(result)
   if (cat === 'all' || cat === 'services') scrapeServices(result)
+  if (cat === 'all' || cat === 'events') scrapeEvents(result)
 
   g[SCRAPE_KEY] = new Date().toISOString()
   return result
@@ -230,6 +295,7 @@ export function scrapeStatus() {
       providers: db.providerProfiles.size,
       products: db.products.size,
       services: db.services.size,
+      events: db.events.size,
     },
   }
 }
@@ -422,7 +488,7 @@ function scrapeServices(result: ScrapeResult) {
     existingEmails.add(email)
 
     const userId = nextId('usr')
-    const avatarMap = { walker: '🚶', sitter: '🏠', vet: '🩺', groomer: '✂️', shop: '🏪' }
+    const avatarMap: Record<ProviderType, string> = { walker: '🚶', sitter: '🏠', vet: '🩺', groomer: '✂️', shop: '🏪', hotel: '🏨' }
     const user: User = {
       id: userId,
       name: profile.name,
@@ -458,10 +524,33 @@ function scrapeServices(result: ScrapeResult) {
         description: svc.description,
         price: svc.price,
         durationMin: svc.durationMin,
+        homeVisit: svc.homeVisit ?? false,
       }
       db.services.set(service.id, service)
       result.services++
     })
+  })
+}
+
+// ---------- Events ----------
+
+function scrapeEvents(result: ScrapeResult) {
+  const existingTitles = new Set([...db.events.values()].map(e => e.title))
+  const organizerId = ensureScrapeOwner()
+
+  EVENT_SEEDS.forEach(seed => {
+    if (existingTitles.has(seed.title)) return
+    existingTitles.add(seed.title)
+    const { inDays, ...rest } = seed
+    const event: PetEvent = {
+      ...rest,
+      id: nextId('evt'),
+      organizerId,
+      attendees: [],
+      date: new Date(Date.now() + inDays * 86400e3).toISOString(),
+    }
+    db.events.set(event.id, event)
+    result.events++
   })
 }
 

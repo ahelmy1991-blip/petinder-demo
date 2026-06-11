@@ -10,6 +10,7 @@ const PROVIDER_TYPES = [
   { value: 'vet', label: '🩺 Vet' },
   { value: 'groomer', label: '✂️ Groomer' },
   { value: 'shop', label: '🏪 Pet Shop' },
+  { value: 'hotel', label: '🏨 Pet Hotel' },
 ]
 
 function RegisterForm() {

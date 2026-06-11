@@ -16,10 +16,10 @@ interface AdminUser {
 }
 interface ScrapeStatus {
   lastRun: string | null
-  counts: { pets: number; adoptable: number; providers: number; products: number; services: number }
+  counts: { pets: number; adoptable: number; providers: number; products: number; services: number; events: number }
 }
 interface ScrapeResult {
-  pets: number; providers: number; products: number; services: number
+  pets: number; providers: number; products: number; services: number; events: number
   source: 'api' | 'curated'; errors: string[]
 }
 
@@ -30,7 +30,7 @@ export default function AdminDashboard() {
   const [scrapeStatus, setScrapeStatus] = useState<ScrapeStatus | null>(null)
   const [scrapeResult, setScrapeResult] = useState<ScrapeResult | null>(null)
   const [scraping, setScraping] = useState(false)
-  const [scrapeCategory, setScrapeCategory] = useState<'all' | 'pets' | 'shops' | 'services'>('all')
+  const [scrapeCategory, setScrapeCategory] = useState<'all' | 'pets' | 'shops' | 'services' | 'events'>('all')
 
   const load = useCallback(async () => {
     const [statsRes, usersRes, scrapeRes] = await Promise.all([
@@ -127,13 +127,14 @@ export default function AdminDashboard() {
           </div>
 
           {scrapeStatus && (
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-center mb-3 bg-gray-50 rounded-xl p-3">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center mb-3 bg-gray-50 rounded-xl p-3">
               {[
                 ['Pets', scrapeStatus.counts.pets],
                 ['Adoptable', scrapeStatus.counts.adoptable],
                 ['Providers', scrapeStatus.counts.providers],
                 ['Products', scrapeStatus.counts.products],
                 ['Services', scrapeStatus.counts.services],
+                ['Events', scrapeStatus.counts.events],
               ].map(([l, v]) => (
                 <div key={l as string}>
                   <p className="font-black text-gray-900 text-sm">{v}</p>
@@ -157,6 +158,7 @@ export default function AdminDashboard() {
               <option value="pets">Pets only</option>
               <option value="shops">Shops & products only</option>
               <option value="services">Services & providers only</option>
+              <option value="events">Events only</option>
             </select>
             <button
               onClick={runScrape}
@@ -170,7 +172,7 @@ export default function AdminDashboard() {
           {scrapeResult && (
             <div className="mt-3 bg-gray-50 rounded-xl p-3">
               <p className="text-xs font-semibold text-gray-700 mb-1">
-                Added — Pets: {scrapeResult.pets} · Providers: {scrapeResult.providers} · Products: {scrapeResult.products} · Services: {scrapeResult.services}
+                Added — Pets: {scrapeResult.pets} · Providers: {scrapeResult.providers} · Products: {scrapeResult.products} · Services: {scrapeResult.services} · Events: {scrapeResult.events}
               </p>
               <p className="text-[11px] text-gray-400">Source: {scrapeResult.source === 'api' ? '🌐 Live API' : '📋 Curated dataset'}</p>
               {scrapeResult.errors.length > 0 && (

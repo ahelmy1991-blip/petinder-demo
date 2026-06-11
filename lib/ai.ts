@@ -102,6 +102,8 @@ export function chatSuggestions(providerType?: string): string[] {
       return ['How long does a full groom take?', 'Do you handle anxious pets?', 'What is included in the price?']
     case 'shop':
       return ['Is this in stock?', 'Do you deliver today?', 'What do you recommend for a puppy?']
+    case 'hotel':
+      return ['I\'m traveling next week — any suites free?', 'Can you send daily videos while I\'m away?', 'Do you offer airport pickup for my pet?']
     default:
       return ['Hi! Is your pet up for a playdate?', 'Your pet is adorable! 😍', 'Where do you usually go for walks?']
   }

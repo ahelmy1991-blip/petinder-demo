@@ -9,7 +9,7 @@ import { hashPassword } from './auth'
 // ---------- Types ----------
 
 export type Role = 'owner' | 'provider' | 'admin'
-export type ProviderType = 'walker' | 'sitter' | 'vet' | 'groomer' | 'shop'
+export type ProviderType = 'walker' | 'sitter' | 'vet' | 'groomer' | 'shop' | 'hotel'
 export type BookingStatus = 'pending' | 'accepted' | 'rejected' | 'completed' | 'cancelled'
 
 export interface User {
@@ -78,6 +78,21 @@ export interface Service {
   description: string
   price: number
   durationMin: number
+  homeVisit?: boolean // provider comes to the customer's home
+}
+
+export interface PetEvent {
+  id: string
+  title: string
+  description: string
+  category: 'meetup' | 'adoption' | 'show' | 'training' | 'charity'
+  city: string
+  venue: string
+  date: string // ISO
+  organizerId: string // userId
+  attendees: string[] // userIds RSVPed
+  petFriendlySpecies: string[]
+  photo: string
 }
 
 export interface Booking {
@@ -162,6 +177,7 @@ interface Db {
   posts: Map<string, Post>
   services: Map<string, Service>
   bookings: Map<string, Booking>
+  events: Map<string, PetEvent>
   products: Map<string, Product>
   cart: Map<string, CartItem>
   orders: Map<string, Order>
@@ -181,6 +197,7 @@ function createDb(): Db {
     posts: new Map(),
     services: new Map(),
     bookings: new Map(),
+    events: new Map(),
     products: new Map(),
     cart: new Map(),
     orders: new Map(),
@@ -249,6 +266,7 @@ export const COMMISSION_RATES: Record<ProviderType, number> = {
   groomer: 0.18,
   vet: 0.1,
   shop: 0.12,
+  hotel: 0.15,
 }
 
 // ---------- Seed ----------
@@ -322,6 +340,13 @@ function seed(d: Db): Db {
     { id: 'post_3', authorId: 'usr_demo2', petId: 'pet_4', content: 'Mimi is looking for her forever home — she is the sweetest. DM me! 💕', photo: '🐱', likes: [], comments: [], createdAt: new Date(Date.now() - 10800e3).toISOString() },
   ]
   posts.forEach(p => d.posts.set(p.id, p))
+
+  const inDays = (n: number) => new Date(Date.now() + n * 86400e3).toISOString()
+  const events: PetEvent[] = [
+    { id: 'evt_1', title: 'Cairo Dog Park Meetup', description: 'Weekly off-leash social hour at Al-Azhar Park. All friendly dogs welcome — water stations and waste bags provided.', category: 'meetup', city: 'Cairo', venue: 'Al-Azhar Park', date: inDays(3), organizerId: 'usr_walker1', attendees: ['usr_demo1', 'usr_demo2'], petFriendlySpecies: ['dog'], photo: '🐕' },
+    { id: 'evt_2', title: 'Adopt Don\'t Shop Day', description: 'Meet 30+ rescued cats and dogs looking for forever homes. Adoption fees waived, vet on-site for free checks.', category: 'adoption', city: 'Giza', venue: 'Giza Pet Rescue Center', date: inDays(7), organizerId: 'usr_vet1', attendees: ['usr_demo1'], petFriendlySpecies: ['dog', 'cat'], photo: '🏡' },
+  ]
+  events.forEach(e => d.events.set(e.id, e))
 
   return d
 }

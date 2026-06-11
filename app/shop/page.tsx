@@ -12,6 +12,7 @@ const CATEGORIES = [
   { value: 'food', label: '🍖 Food' },
   { value: 'toys', label: '🎾 Toys' },
   { value: 'accessories', label: '🦮 Accessories' },
+  { value: 'health', label: '💊 Health' },
 ]
 
 export default function ShopPage() {
@@ -57,6 +58,11 @@ export default function ShopPage() {
       <TopBar title="Shop" />
       <main className="max-w-md mx-auto px-4 pt-4">
         {toast && <div className="bg-emerald-500 text-white rounded-xl px-4 py-2.5 mb-3 text-sm font-semibold text-center">{toast}</div>}
+
+        <Link href="/trends" className="block bg-gradient-to-r from-rose-500 to-purple-600 text-white rounded-2xl px-4 py-3 mb-3">
+          <p className="text-sm font-bold">📊 Cairo Dog Market Trends 2025–2026</p>
+          <p className="text-[11px] opacity-80">Top-selling breeds, prices & demand — tap to explore</p>
+        </Link>
 
         <div className="flex items-center justify-between mb-3">
           <div className="flex gap-2 overflow-x-auto">
