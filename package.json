@@ -15,13 +15,13 @@
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
     "jsonwebtoken": "^9.0.3",
-    "next": "^16.2.6",
+    "next": "^15.5.19",
     "node-fetch": "^2.7.0",
     "react": "^18",
     "react-dom": "^18"
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": "^18.18.0 || ^19.8.0 || >=20.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",
