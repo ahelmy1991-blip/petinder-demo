@@ -22,7 +22,7 @@ export default function LoginPage() {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Login failed'); return }
-      router.push('/swipe')
+      router.push('/home')
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {

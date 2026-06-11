@@ -22,7 +22,7 @@ export default function RegisterPage() {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Registration failed'); return }
-      router.push('/swipe')
+      router.push('/home')
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {
