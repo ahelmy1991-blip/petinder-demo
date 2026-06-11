@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server'
 const PROTECTED = ['/home', '/vendors', '/cart', '/chat', '/saved', '/swipe', '/matches']
 const AUTH_PAGES = ['/login', '/register']
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const token = request.cookies.get('auth-token')?.value
   const { pathname } = request.nextUrl
 
