@@ -18,10 +18,9 @@ export async function scrapeAndMerge(category = 'restaurant'): Promise<{
   try {
     // Dynamic import so cheerio is only loaded server-side
     const cheerio = await import('cheerio')
-    const nodeFetch = (await import('node-fetch')).default
 
     const url = `https://www.yellowpages.com.eg/en/search?keyword=${encodeURIComponent(category)}&location=cairo`
-    const res = await (nodeFetch as typeof fetch)(url as RequestInfo, {
+    const res = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CairoSouqBot/1.0)' },
       signal: AbortSignal.timeout(8000),
     })
@@ -32,7 +31,8 @@ export async function scrapeAndMerge(category = 'restaurant'): Promise<{
     const $ = cheerio.load(html)
 
     // yellowpages.com.eg listing selectors
-    $('.listing-item, .business-listing, [data-testid="listing"]').each((_: number, el: cheerio.Element) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    $('.listing-item, .business-listing, [data-testid="listing"]').each((_: number, el: any) => {
       const nameEn = $(el).find('.business-name, h2, .name').first().text().trim()
       const districtEn = $(el).find('.address, .location').first().text().trim().split(',')[0] || 'Cairo'
       const phone = $(el).find('.phone, .tel').first().text().trim()
