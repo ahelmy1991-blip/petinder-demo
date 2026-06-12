@@ -1,0 +1,16 @@
+{
+  "name": "Petinder",
+  "short_name": "Petinder",
+  "description": "Everything your pet needs — social network, matching, services and marketplace in Cairo.",
+  "start_url": "/feed",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f43f5e",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "categories": ["lifestyle", "health", "social"],
+  "lang": "en",
+  "dir": "ltr"
+}

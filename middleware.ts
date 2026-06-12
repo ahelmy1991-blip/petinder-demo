@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PROTECTED = ['/feed', '/match', '/services', '/shop', '/cart', '/chat', '/pets', '/profile', '/provider', '/admin', '/events', '/trends']
+const PROTECTED = ['/feed', '/match', '/services', '/shop', '/cart', '/chat', '/pets', '/profile', '/provider', '/admin', '/events', '/trends', '/search']
 const AUTH_PAGES = ['/login', '/register']
 
 export function middleware(request: NextRequest) {
@@ -25,7 +25,7 @@ export const config = {
   matcher: [
     '/feed/:path*', '/match/:path*', '/services/:path*', '/shop/:path*', '/cart/:path*',
     '/chat/:path*', '/pets/:path*', '/profile/:path*', '/provider/:path*', '/admin/:path*',
-    '/events/:path*', '/trends/:path*',
+    '/events/:path*', '/trends/:path*', '/search/:path*',
     '/login', '/register',
   ],
 }
