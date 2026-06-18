@@ -160,11 +160,13 @@ export interface Notification {
   createdAt: string
 }
 
+export type MatchMode = 'walk' | 'adoption' | 'breed'
+
 export interface MatchRecord {
   id: string
   petAId: string
   petBId: string
-  purpose: 'playdate' | 'adoption'
+  purpose: MatchMode
   createdAt: string
 }
 
@@ -256,6 +258,28 @@ export function notify(userId: string, text: string) {
     read: false,
     createdAt: new Date().toISOString(),
   })
+}
+
+// ---------- Messaging ----------
+
+/** Append a direct message between two users. */
+export function sendMessage(fromId: string, toId: string, text: string): Message {
+  const msg: Message = {
+    id: nextId('msg'),
+    fromId,
+    toId,
+    text: text.slice(0, 2000),
+    createdAt: new Date().toISOString(),
+  }
+  db.messages.push(msg)
+  return msg
+}
+
+/** True if any direct message already exists between the two users. */
+export function conversationExists(a: string, b: string): boolean {
+  return db.messages.some(
+    m => (m.fromId === a && m.toId === b) || (m.fromId === b && m.toId === a),
+  )
 }
 
 // ---------- Commission ----------

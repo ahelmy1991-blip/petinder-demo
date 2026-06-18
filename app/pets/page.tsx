@@ -23,6 +23,7 @@ export default function PetsPage() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [error, setError] = useState('')
+  const [bioLoading, setBioLoading] = useState(false)
   const [aiSymptoms, setAiSymptoms] = useState('')
   const [aiResult, setAiResult] = useState<{ insights: { insight: string; urgency: string }[]; suggestVet: boolean } | null>(null)
 
@@ -45,6 +46,34 @@ export default function PetsPage() {
     setShowForm(false)
     setForm(EMPTY_FORM)
     await load()
+  }
+
+  const generateBio = async () => {
+    setBioLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/ai/bio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          species: form.species,
+          breed: form.breed,
+          age: Number(form.age),
+          gender: form.gender,
+          size: form.size,
+          temperament: form.temperament,
+          adoptable: form.adoptable,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.bio) setForm(f => ({ ...f, bio: data.bio }))
+      else setError(data.error ?? 'Could not generate a bio')
+    } catch {
+      setError('Could not generate a bio. Try again.')
+    } finally {
+      setBioLoading(false)
+    }
   }
 
   const checkHealth = async () => {
@@ -97,7 +126,24 @@ export default function PetsPage() {
             </div>
             <input placeholder="Temperament (comma-separated: friendly, playful)" value={form.temperament} onChange={e => setForm(f => ({ ...f, temperament: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-2" />
             <input placeholder="Medical notes" value={form.medical} onChange={e => setForm(f => ({ ...f, medical: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-2" />
-            <input placeholder="Bio" value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-2" />
+
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-semibold text-gray-500">Description</label>
+              <button
+                type="button"
+                onClick={generateBio}
+                disabled={bioLoading}
+                className="text-xs font-bold text-rose-500 hover:text-rose-600 disabled:opacity-50 flex items-center gap-1"
+              >
+                {bioLoading ? 'Generating…' : '✨ AI Generate Bio'}
+              </button>
+            </div>
+            <textarea
+              placeholder="Tell potential adopters about this pet's personality…"
+              value={form.bio}
+              onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-2 h-24 resize-none"
+            />
             <label className="flex items-center gap-2 text-sm text-gray-600 mb-3">
               <input type="checkbox" checked={form.adoptable} onChange={e => setForm(f => ({ ...f, adoptable: e.target.checked }))} />
               🏡 Available for adoption

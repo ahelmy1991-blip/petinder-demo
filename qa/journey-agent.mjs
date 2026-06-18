@@ -120,7 +120,7 @@ async function customerJourney(browser, ids) {
     await page.getByPlaceholder('Name *').fill('Bolt')
     await page.getByPlaceholder('Breed *').fill('Husky')
     await page.getByPlaceholder(/Temperament/).fill('energetic, friendly')
-    await page.getByPlaceholder('Bio').fill('QA test dog, very good boy')
+    await page.getByPlaceholder(/personality/i).fill('QA test dog, very good boy')
     await page.getByRole('button', { name: 'Save pet' }).click()
     await page.waitForSelector('text=Bolt', { timeout: 5000 })
   }, page)
@@ -140,11 +140,39 @@ async function customerJourney(browser, ids) {
     await page.waitForSelector('text=QA was here', { timeout: 5000 })
   }, page)
 
-  await step('AI match: swipe right', async () => {
+  await step('AI generate bio fills the description', async () => {
+    const { status, body } = await api(ctx, 'POST', '/api/ai/bio', {
+      name: 'Bolt', species: 'dog', breed: 'Husky', age: 2, gender: 'male', temperament: 'energetic, friendly',
+    })
+    if (status !== 200 || !body.bio) throw new Error(`bio API → ${status}`)
+    if (!body.bio.includes('Bolt')) throw new Error(`bio missing pet name: ${body.bio}`)
+  })
+
+  await step('AI match: swipe right (fun walk)', async () => {
     await page.goto(`${BASE_URL}/match`)
     await page.waitForSelector('text=% match', { timeout: 8000 })
     await page.getByLabel('Like').click()
   }, page)
+
+  await step('all 3 match modes return candidates + a match starts a chat', async () => {
+    for (const mode of ['walk', 'adoption', 'breed']) {
+      const { status } = await api(ctx, 'GET', `/api/match?mode=${mode}`)
+      if (status !== 200) throw new Error(`match mode ${mode} → ${status}`)
+    }
+    // A swipe-right match should create a conversation in the DB.
+    const list = await api(ctx, 'GET', '/api/match?mode=walk')
+    const target = list.body.candidates?.[0]
+    const myPet = list.body.myPet
+    if (target && myPet) {
+      const { body } = await api(ctx, 'POST', '/api/match/swipe', {
+        myPetId: myPet.id, targetPetId: target.pet.id, like: true, mode: 'walk',
+      })
+      if (body.matched) {
+        const chat = await api(ctx, 'GET', `/api/chat/${body.otherOwnerId}`)
+        if (!chat.body.messages?.length) throw new Error('match did not initiate a chat conversation')
+      }
+    }
+  })
 
   await step('AI health check returns guidance', async () => {
     const { status, body } = await api(ctx, 'POST', '/api/ai/health', { symptoms: 'vomiting and not eating' })

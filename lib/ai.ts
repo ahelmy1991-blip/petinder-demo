@@ -2,7 +2,76 @@
  * Petinder AI features (MVP — deterministic heuristics).
  * Production: swap each function for a Claude API call; the interfaces stay stable.
  */
-import { db, Pet, Product, Service } from './db'
+import { db, MatchMode, Pet, Product, Service } from './db'
+
+// ---------- Bio generation ----------
+
+export interface BioInput {
+  name?: string
+  species?: string
+  breed?: string
+  age?: number
+  gender?: 'male' | 'female'
+  size?: string
+  temperament?: string[]
+  adoptable?: boolean
+}
+
+const SPECIES_NOUN: Record<string, string> = {
+  dog: 'pup', cat: 'cat', bird: 'birdie', other: 'companion',
+}
+const TRAIT_PHRASES: Record<string, string> = {
+  friendly: 'makes friends everywhere',
+  energetic: 'has energy for days',
+  playful: 'is always up for a game',
+  calm: 'brings a calm, gentle presence',
+  loyal: 'is fiercely loyal',
+  protective: 'is a devoted little guardian',
+  independent: 'enjoys a bit of independence',
+  cuddly: 'lives for cuddles',
+  vocal: 'always has something to say',
+  curious: 'is endlessly curious',
+  intelligent: 'is sharp as a tack',
+  affectionate: 'is wonderfully affectionate',
+  gentle: 'is as gentle as they come',
+  social: 'loves being around people and pets',
+}
+
+/** Deterministically craft a warm pet bio from its attributes. */
+export function generatePetBio(input: BioInput): string {
+  const name = (input.name || '').trim() || 'This little one'
+  const species = (input.species || 'dog').toLowerCase()
+  const breed = (input.breed || '').trim()
+  const noun = SPECIES_NOUN[species] ?? 'companion'
+  const age = typeof input.age === 'number' && input.age >= 0 ? input.age : undefined
+  const pronoun = input.gender === 'female' ? 'She' : input.gender === 'male' ? 'He' : 'They'
+  const possessive = input.gender === 'female' ? 'her' : input.gender === 'male' ? 'his' : 'their'
+
+  const agePart = age !== undefined
+    ? age < 1 ? 'a tiny baby' : age === 1 ? 'a sprightly 1-year-old' : `a lovely ${age}-year-old`
+    : ''
+  const breedPart = breed ? `${breed} ` : ''
+  const opener = agePart
+    ? `Meet ${name} — ${agePart} ${breedPart}${noun}`.trim()
+    : `Meet ${name}, a ${breedPart}${noun}`.trim()
+
+  const traits = (input.temperament ?? []).map(t => t.toLowerCase().trim()).filter(Boolean)
+  const traitPhrases = traits.map(t => TRAIT_PHRASES[t]).filter(Boolean) as string[]
+  let traitSentence = ''
+  if (traitPhrases.length === 1) traitSentence = `${pronoun} ${traitPhrases[0]}.`
+  else if (traitPhrases.length >= 2) {
+    const [first, second] = traitPhrases
+    traitSentence = `${pronoun} ${first} and ${second}.`
+  } else if (traits.length) {
+    traitSentence = `${pronoun} is ${traits.slice(0, 2).join(' and ')}.`
+  }
+
+  const closer = input.adoptable
+    ? `${name} is looking for a loving forever home — could it be yours? 🏡`
+    : `${pronoun} would love to make new furry friends on Petinder! 🐾`
+
+  return [`${opener}.`, traitSentence, closer].filter(Boolean).join(' ')
+}
 
 // ---------- Pet matching ----------
 
@@ -23,13 +92,28 @@ export interface MatchScore {
   reasons: string[]
 }
 
-export function matchScore(a: Pet, b: Pet): MatchScore {
+const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
+
+/**
+ * Score compatibility between pet `a` (the viewer's) and pet `b` (a candidate),
+ * tailored to the match mode:
+ *   walk     — fun walks & playdates (temperament/size/energy fit)
+ *   adoption — how well candidate b would fit a's household
+ *   breed    — breeding compatibility (same species, opposite sex, same breed)
+ */
+export function matchScore(a: Pet, b: Pet, mode: MatchMode = 'walk'): MatchScore {
+  if (mode === 'breed') return breedScore(a, b)
+  if (mode === 'adoption') return adoptionScore(a, b)
+  return walkScore(a, b)
+}
+
+function walkScore(a: Pet, b: Pet): MatchScore {
   let score = 50
   const reasons: string[] = []
 
   if (a.species === b.species) {
     score += 20
-    reasons.push(`Both are ${a.species}s`)
+    reasons.push(`Both are ${a.species}s — easy playdates`)
   } else {
     score -= 25
     reasons.push('Different species — supervised intros recommended')
@@ -37,24 +121,93 @@ export function matchScore(a: Pet, b: Pet): MatchScore {
 
   if (a.size === b.size) {
     score += 10
-    reasons.push('Similar size — safe play')
+    reasons.push('Similar size — safe rough-and-tumble')
   } else if ((a.size === 'large' && b.size === 'small') || (a.size === 'small' && b.size === 'large')) {
     score -= 10
-    reasons.push('Big size gap — watch rough play')
+    reasons.push('Big size gap — watch the rough play')
   }
 
   const affinity = a.temperament.filter(t =>
     b.temperament.some(bt => (TEMPERAMENT_AFFINITY[t] ?? [t]).includes(bt))
   )
   score += Math.min(20, affinity.length * 8)
-  if (affinity.length) reasons.push(`Compatible temperament: ${affinity.join(', ')}`)
+  if (affinity.length) reasons.push(`Great walk energy: ${affinity.join(', ')}`)
 
   if (Math.abs(a.age - b.age) <= 2) {
     score += 5
-    reasons.push('Close in age')
+    reasons.push('Close in age — matched pace')
   }
 
-  return { score: Math.max(0, Math.min(100, score)), reasons }
+  return { score: clamp(score), reasons }
+}
+
+function adoptionScore(a: Pet, b: Pet): MatchScore {
+  let score = 55
+  const reasons: string[] = []
+
+  if (a.species === b.species) {
+    score += 18
+    reasons.push(`Another ${b.species} — fits your home`)
+  } else {
+    score += 4
+    reasons.push(`A ${b.species} would add variety to your family`)
+  }
+
+  if (a.size === b.size) {
+    score += 8
+    reasons.push('Similar size to your pet')
+  }
+
+  const affinity = a.temperament.filter(t =>
+    b.temperament.some(bt => (TEMPERAMENT_AFFINITY[t] ?? [t]).includes(bt))
+  )
+  score += Math.min(18, affinity.length * 7)
+  if (affinity.length) reasons.push(`Temperament clicks with ${a.name}: ${affinity.join(', ')}`)
+
+  if (b.age <= 1) { score += 6; reasons.push('Young — lots of bonding years ahead') }
+  reasons.push(`${b.name} is ready for a forever home 🏡`)
+
+  return { score: clamp(score), reasons }
+}
+
+function breedScore(a: Pet, b: Pet): MatchScore {
+  let score = 40
+  const reasons: string[] = []
+
+  if (a.species !== b.species) {
+    return { score: 0, reasons: ['Different species — not a breeding match'] }
+  }
+  score += 15
+  reasons.push(`Both ${a.species}s`)
+
+  if (a.gender !== b.gender) {
+    score += 30
+    reasons.push('Opposite sex — breeding compatible 💞')
+  } else {
+    score -= 35
+    reasons.push('Same sex — not suitable for breeding')
+  }
+
+  if (a.breed && b.breed && a.breed.toLowerCase() === b.breed.toLowerCase()) {
+    score += 25
+    reasons.push(`Same breed — purebred ${a.breed} litter`)
+  } else {
+    score += 5
+    reasons.push('Mixed breed pairing')
+  }
+
+  const bothAdult = a.age >= 1 && b.age >= 1 && a.age <= 8 && b.age <= 8
+  if (bothAdult) {
+    score += 10
+    reasons.push('Both at a healthy breeding age')
+  }
+
+  if (a.size === b.size) {
+    score += 5
+    reasons.push('Matched size — safer breeding')
+  }
+
+  return { score: clamp(score), reasons }
 }
 
 // ---------- Health insights ----------
