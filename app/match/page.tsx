@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import TopBar from '@/components/TopBar'
@@ -51,6 +51,11 @@ export default function MatchPage() {
   const [matchBanner, setMatchBanner] = useState<{ name: string; ownerId: string; mode: MatchMode } | null>(null)
   const [loadingDiscover, setLoadingDiscover] = useState(true)
 
+  // --- Swipe gesture state ---
+  const dragStart = useRef<number | null>(null)
+  const [dragX, setDragX] = useState(0)
+  const [isSwiping, setIsSwiping] = useState(false)
+
   // --- Matches tab state ---
   const [matches, setMatches] = useState<MatchItem[]>([])
   const [loadingMatches, setLoadingMatches] = useState(false)
@@ -84,6 +89,26 @@ export default function MatchPage() {
   useEffect(() => {
     if (tab === 'matches') loadMatches()
   }, [tab, loadMatches])
+
+  const SWIPE_THRESHOLD = 80
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    dragStart.current = e.clientX
+    setIsSwiping(true)
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  }
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (dragStart.current === null) return
+    setDragX(e.clientX - dragStart.current)
+  }
+  const onPointerUp = () => {
+    if (dragStart.current === null) return
+    const dx = dragX
+    dragStart.current = null
+    setDragX(0)
+    setIsSwiping(false)
+    if (Math.abs(dx) >= SWIPE_THRESHOLD) swipe(dx > 0)
+  }
 
   const swipe = async (like: boolean) => {
     const target = candidates[0]
@@ -181,8 +206,25 @@ export default function MatchPage() {
                 {loadingDiscover ? (
                   <p className="text-center text-gray-400 py-16">Finding matches…</p>
                 ) : current ? (
-                  <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
+                  <div
+                    className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden select-none cursor-grab active:cursor-grabbing"
+                    style={{
+                      transform: `translateX(${dragX}px) rotate(${dragX * 0.04}deg)`,
+                      transition: isSwiping ? 'none' : 'transform 0.3s ease',
+                      touchAction: 'none',
+                    }}
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    onPointerCancel={onPointerUp}
+                  >
                     <div className="text-[7rem] text-center py-12 bg-gradient-to-br from-rose-100 to-purple-100 relative">
+                      {dragX > 30 && (
+                        <span className="absolute inset-0 flex items-center justify-center text-4xl font-black text-green-500 opacity-80 pointer-events-none" style={{ textShadow: '0 0 20px #22c55e' }}>❤️ LIKE</span>
+                      )}
+                      {dragX < -30 && (
+                        <span className="absolute inset-0 flex items-center justify-center text-4xl font-black text-red-400 opacity-80 pointer-events-none" style={{ textShadow: '0 0 20px #f87171' }}>✖️ NOPE</span>
+                      )}
                       {current.pet.photo}
                       <span className="absolute top-3 right-3 bg-white/90 text-rose-500 text-sm font-black px-3 py-1 rounded-full shadow">
                         {current.match.score}% match
@@ -209,6 +251,7 @@ export default function MatchPage() {
                       </ul>
                       <div className="flex justify-center gap-6">
                         <button
+                          onPointerDown={e => e.stopPropagation()}
                           onClick={() => swipe(false)}
                           aria-label="Pass"
                           className="w-16 h-16 rounded-full bg-white border-2 border-gray-200 text-2xl shadow hover:scale-105 transition"
@@ -216,6 +259,7 @@ export default function MatchPage() {
                           ✖️
                         </button>
                         <button
+                          onPointerDown={e => e.stopPropagation()}
                           onClick={() => swipe(true)}
                           aria-label="Like"
                           className="w-16 h-16 rounded-full bg-rose-500 text-2xl shadow-lg hover:scale-105 transition"

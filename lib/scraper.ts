@@ -346,8 +346,10 @@ async function scrapePets(result: ScrapeResult) {
     result.errors.push(`TheCatAPI: ${(e as Error).message}`)
   }
 
-  // Get or create a scrape owner user
-  const scrapeOwnerId = ensureScrapeOwner()
+  // Distribute pets across Cairo owner personas
+  const personaIds = ensurePersonaOwners()
+  let personaIdx = 0
+  const nextOwner = () => personaIds[personaIdx++ % personaIds.length]
 
   // Create dogs (half adoptable)
   for (let i = 0; i < dogBreeds.length; i++) {
@@ -357,7 +359,7 @@ async function scrapePets(result: ScrapeResult) {
     const age = Math.floor(Math.random() * 7) + 1
     const pet: Pet = {
       id: nextId('pet'),
-      ownerId: scrapeOwnerId,
+      ownerId: nextOwner(),
       name,
       species: 'dog',
       breed: breed.name,
@@ -383,7 +385,7 @@ async function scrapePets(result: ScrapeResult) {
     const age = Math.floor(Math.random() * 6) + 1
     const pet: Pet = {
       id: nextId('pet'),
-      ownerId: scrapeOwnerId,
+      ownerId: nextOwner(),
       name,
       species: 'cat',
       breed: breed.name,
@@ -407,7 +409,7 @@ async function scrapePets(result: ScrapeResult) {
     existingPetNames.add(name)
     const pet: Pet = {
       id: nextId('pet'),
-      ownerId: scrapeOwnerId,
+      ownerId: nextOwner(),
       name,
       species: 'bird',
       breed: pick(BIRD_BREEDS),
@@ -556,19 +558,58 @@ function scrapeEvents(result: ScrapeResult) {
 
 // ---------- Helpers ----------
 
+const CAIRO_PERSONAS = [
+  { name: 'Ahmed Hassan', email: 'ahmed.hassan@petinder.app', avatar: '👨', neighborhood: 'Maadi' },
+  { name: 'Nour El-Din', email: 'nour.eldin@petinder.app', avatar: '👩', neighborhood: 'Heliopolis' },
+  { name: 'Karim Samir', email: 'karim.samir@petinder.app', avatar: '👨‍🦱', neighborhood: 'Zamalek' },
+  { name: 'Rana Mostafa', email: 'rana.mostafa@petinder.app', avatar: '👩‍🦰', neighborhood: 'New Cairo' },
+  { name: 'Omar Khaled', email: 'omar.khaled@petinder.app', avatar: '🧔', neighborhood: 'Nasr City' },
+  { name: 'Layla Ibrahim', email: 'layla.ibrahim@petinder.app', avatar: '👩‍🦱', neighborhood: 'Dokki' },
+]
+
+function ensurePersonaOwners(): string[] {
+  const pw = hashPassword('petinder123')
+  const ids: string[] = []
+
+  for (const persona of CAIRO_PERSONAS) {
+    const existing = [...db.users.values()].find(u => u.email === persona.email)
+    if (existing) {
+      ids.push(existing.id)
+      continue
+    }
+    const id = nextId('usr')
+    const user: User = {
+      id,
+      name: `${persona.name} (${persona.neighborhood})`,
+      email: persona.email,
+      passwordHash: pw,
+      role: 'owner',
+      avatar: persona.avatar,
+      banned: false,
+      walletBalance: 0,
+      createdAt: new Date().toISOString(),
+    }
+    db.users.set(id, user)
+    ids.push(id)
+  }
+
+  return ids
+}
+
 function ensureScrapeOwner(): string {
-  const existing = [...db.users.values()].find(u => u.email === 'shelter@petinder.app')
+  // Used only for event organization (not pet ownership)
+  const existing = [...db.users.values()].find(u => u.email === 'events@petinder.app')
   if (existing) return existing.id
 
   const pw = hashPassword('petinder123')
   const id = nextId('usr')
   const user: User = {
     id,
-    name: 'Petinder Shelter',
-    email: 'shelter@petinder.app',
+    name: 'Petinder Events',
+    email: 'events@petinder.app',
     passwordHash: pw,
     role: 'owner',
-    avatar: '🏠',
+    avatar: '🎉',
     banned: false,
     walletBalance: 0,
     createdAt: new Date().toISOString(),
