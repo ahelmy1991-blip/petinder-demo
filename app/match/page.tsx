@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import TopBar from '@/components/TopBar'
 import BottomNav from '@/components/BottomNav'
 
@@ -40,8 +40,12 @@ const PURPOSE_BADGE: Record<MatchMode, { label: string; cls: string }> = {
 
 export default function MatchPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const [tab, setTab] = useState<Tab>(() => searchParams.get('tab') === 'matches' ? 'matches' : 'discover')
+  const [tab, setTab] = useState<Tab>('discover')
+
+  // Read ?tab=matches on mount without useSearchParams (avoids Suspense requirement)
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('tab') === 'matches') setTab('matches')
+  }, [])
   const [mode, setMode] = useState<MatchMode>('walk')
 
   // --- Discover tab state ---
