@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import TopBar from '@/components/TopBar'
 import BottomNav from '@/components/BottomNav'
 
@@ -40,7 +40,8 @@ const PURPOSE_BADGE: Record<MatchMode, { label: string; cls: string }> = {
 
 export default function MatchPage() {
   const router = useRouter()
-  const [tab, setTab] = useState<Tab>('discover')
+  const searchParams = useSearchParams()
+  const [tab, setTab] = useState<Tab>(() => searchParams.get('tab') === 'matches' ? 'matches' : 'discover')
   const [mode, setMode] = useState<MatchMode>('walk')
 
   // --- Discover tab state ---
